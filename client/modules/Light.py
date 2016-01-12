@@ -1,64 +1,63 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import random
 import re
 import random
+import logging
 from phue import Bridge
 
 b = Bridge('192.168.1.16') # Enter bridge IP here.
 
-WORDS = ["ALLUME", "ÉTEINS", "DE", "LA", "SALON", "CUISINE", "BAISSE", "DU"]
+WORDS = ["ALLUME", "ÉTEINS", "DE", "LA", "SALON", "CUISINE", "DU", "LUMIÈRES", "LUMIÈRE"]
 
 lights = b.get_light_objects()
 
 #Commands for Phue
 on =  {'transitiontime' : 10, 'on' : True, 'bri' : 250}
 off = {'transitiontime' : 10, 'on' : False}
-dim = {'transitiontime' : 75, 'bri' : 75}
 
 def handle(text, mic, profile):
+    logger = logging.getLogger(__name__)
+    logger.debug(text)
+    text = text.lower()
+    if re.search(u'salon', text, re.UNICODE):
 
-    if re.search(r'\bsalon\b', text, re.IGNORECASE):
-
-        if re.search(r'\ballume\b', text, re.IGNORECASE):
+        if re.search(u'allume', text, re.UNICODE):
             mic.say("J'allume la lumière du salon.")
             
-            b.set_group('Salon', on)
+            b.set_light('Salon', on)
 
-        elif re.search(r'\béteins\b', text, re.IGNORECASE):
+        elif re.search(u'éteins', text, re.UNICODE):
             mic.say("J'éteins la lumière du salon.")
             
-            b.set_group('Salon', off)
+            b.set_light('Salon', off)
 
         else:
-            mic.say("Désolé, je n'ai pas compris.")
+            mic.say("Désolé, pouvez vous répéter.")
 
-    elif re.search(r'\bchambre\b', text, re.IGNORECASE):
+    elif re.search(u'chambre', text, re.UNICODE):
 
-        if re.search(r'\ballume\b', text, re.IGNORECASE):
+        if re.search(u'allume', text, re.UNICODE):
             mic.say("J'allume la lumière de la chambre")
 
-            b.set_group('Chambre', on)
+            b.set_light('Chambre', on)
 
-        elif re.search(r'\béteins\b', text, re.IGNORECASE):
+        elif re.search(u'éteins', text, re.UNICODE):
             mic.say("J'éteins la lumière de la chambre.")
 
-            b.set_group('Chambre', off)
+            b.set_light('Chambre', off)
 
         else:
-            mic.say("Désolé, je n'ai pas compris.")
+            mic.say("Je n'ai pas compris, désolé.")
 
-    elif re.search(r'\bbaisses\b', text, re.IGNORECASE):
-        mic.say("Je baisses la lumières de la chambre")
-
-        b.set_group('Chambre', dim)
-
-    elif re.search(r'\ballume\b', text, re.IGNORECASE):
+    elif re.search(u'allume', text, re.UNICODE):
         mic.say("J'allume toutes les lumières.")
 
         for light in lights:
             light.on = True
 
-    elif re.search(r'\béteins\b', text, re.IGNORECASE):
+    elif re.search(u'éteins', text, re.UNICODE):
 
         mic.say("J'éteins toutes les lumières")
 
@@ -69,16 +68,16 @@ def handle(text, mic, profile):
         mic.say("Désolé, je n'ai pas compris.")
     
 def isValid(text):
-  
-    if re.search(r'\ballume\b', text, re.IGNORECASE):
+    text = text.lower()
+    if re.search(u'allume', text, re.UNICODE):
         return True
-    elif re.search(r'\béteins\b', text, re.IGNORECASE):
+    elif re.search(u'éteins', text, re.UNICODE):
         return True
-    elif re.search(r'\bcuisine\b', text, re.IGNORECASE):
+    elif re.search(u'cuisine', text, re.UNICODE):
         return True
-    elif re.search(r'\bchambre\b', text, re.IGNORECASE):
+    elif re.search(u'chambre', text, re.UNICODE):
         return True
-    elif re.search(r'\bbaisse\b', text, re.IGNORECASE):
-        return True
+    #elif re.search(u"lumière", text, re.UNICODE):
+	#return True
     else:
         return False
