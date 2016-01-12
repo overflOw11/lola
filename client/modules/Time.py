@@ -4,7 +4,7 @@ import re
 from client.app_utils import getTimezone
 from semantic.dates import DateService
 
-WORDS = ["TIME"]
+WORDS = ["HEURE"]
 
 
 def handle(text, mic, profile):
@@ -22,7 +22,7 @@ def handle(text, mic, profile):
     now = datetime.datetime.now(tz=tz)
     service = DateService()
     response = service.convertTime(now)
-    mic.say("It is %s right now." % response)
+    mic.say("Il est %s." % response)
 
 
 def isValid(text):
@@ -32,4 +32,4 @@ def isValid(text):
         Arguments:
         text -- user-input, typically transcribed speech
     """
-    return bool(re.search(r'\btime\b', text, re.IGNORECASE))
+    return bool(re.search(r'\bheure\b', text, re.IGNORECASE))

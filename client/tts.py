@@ -354,7 +354,7 @@ class PicoTTS(AbstractTTSEngine):
 
     SLUG = "pico-tts"
 
-    def __init__(self, language="en-US"):
+    def __init__(self, language="fr-FR"):
         super(self.__class__, self).__init__()
         self.language = language
 
