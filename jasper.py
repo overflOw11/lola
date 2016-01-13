@@ -115,7 +115,7 @@ class Jasper(object):
         self.mic.say(salutation)
 
 	if 'name' in self.config:
-	    name = self.config['name']
+	    name = self.config['name'].upper()
 	else:
 	    name = "LOLA"	
         conversation = Conversation(name, self.mic, self.config)

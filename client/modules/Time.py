@@ -22,6 +22,10 @@ def handle(text, mic, profile):
     now = datetime.datetime.now(tz=tz)
     service = DateService()
     response = service.convertTime(now)
+    d = datetime.datetime.strptime(response, "%I:%M %p")
+    response = d.strftime("%H:%M")
+    response = re.sub(r'00:', 'minuit ', response)
+    response = re.sub(r'12:', 'midi ', response)
     mic.say("Il est %s." % response)
 
 

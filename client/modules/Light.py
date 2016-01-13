@@ -20,7 +20,7 @@ off = {'transitiontime' : 10, 'on' : False}
 def colors(text):
     text = text.upper()
     colors = [u"ROUGE", u"VERT", u"BLEU", u"JAUNE", u"ORANGE", u"VIOLET", u"ROSE"]
-    values = [[0.675,0.322], [0.408,0.517], [0.168,0.041], [0.4317,0.4996], [0.5562,0.4084], [0.2725,0.1096], [0.4682,0.2452], [0.3227,0.329]]
+    values = [[0.7,0.2986], [0.4063, 0.5126], [0.1717, 0.0494], [0.5797, 0.3884], [0.6281, 0.3565], [0.2885, 0.1074], [0.395, 0.1777], [0.4596, 0.4105]]
     n = len(colors)
     for i in range(n):
 	if re.search(colors[i], text, re.UNICODE):
