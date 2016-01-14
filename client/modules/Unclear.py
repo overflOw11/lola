@@ -18,7 +18,7 @@ def handle(text, mic, profile):
                    number)
     """
 
-    messages = ["Désolé, pouvez-vous répéter ?", Je m'excuse, je n'ai pas compris.",
+    messages = ["Désolé, pouvez-vous répéter ?", "Je m'excuse, je n'ai pas compris.",
 		"Redite ça pour voir !", "Je vous demande pardon ?"]
 
     message = random.choice(messages)

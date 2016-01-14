@@ -6,10 +6,11 @@ import urllib
 import feedparser
 import requests
 import bs4
+import logging
 from client.app_utils import getTimezone
 from semantic.dates import DateService
 
-WORDS = ["WEATHER", "TODAY", "TOMORROW"]
+WORDS = ["TEMPS", "MÉTÉO", "AUJOURD'HUI", "DEMAIN"]
 
 
 def replaceAcronyms(text):
@@ -19,10 +20,10 @@ def replaceAcronyms(text):
 
     def parseDirections(text):
         words = {
-            'N': 'north',
-            'S': 'south',
-            'E': 'east',
-            'W': 'west',
+            'N': 'nord',
+            'S': 'sud',
+            'E': 'est',
+            'W': 'ouest',
         }
         output = [words[w] for w in list(text)]
         return ' '.join(output)
@@ -31,9 +32,9 @@ def replaceAcronyms(text):
     for w in acronyms:
         text = text.replace(w, parseDirections(w))
 
-    text = re.sub(r'(\b\d+)F(\b)', '\g<1> Fahrenheit\g<2>', text)
-    text = re.sub(r'(\b)mph(\b)', '\g<1>miles per hour\g<2>', text)
-    text = re.sub(r'(\b)in\.', '\g<1>inches', text)
+    text = re.sub(u'&deg; C', u'degrés celsius', text)
+    text = re.sub(u'km\/h', u'kilomètres par heure', text)
+    text = re.sub(u'hPa', u'hecto pascal', text)
 
     return text
 
@@ -73,7 +74,7 @@ def get_locations():
 
 
 def get_forecast_by_name(location_name):
-    entries = feedparser.parse("http://rss.wunderground.com/auto/rss_full/%s"
+    entries = feedparser.parse("http://french.wunderground.com/auto/rss_full/%s"
                                % urllib.quote(location_name))['entries']
     if entries:
         # We found weather data the easy way
@@ -86,9 +87,28 @@ def get_forecast_by_name(location_name):
 
 
 def get_forecast_by_wmo_id(wmo_id):
-    return feedparser.parse("http://rss.wunderground.com/auto/" +
+    return feedparser.parse("http://french.wunderground.com/auto/" +
                             "rss_full/global/stations/%s.xml"
                             % wmo_id)['entries']
+
+def extractDate(text, now):
+    text = text.upper()
+    days = ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI", "DIMANCHE"]
+    weekday = now.weekday()
+    for i in range(len(days)):
+        if re.search(days[i], text, re.UNICODE):
+	    if i == weekday:
+		result = 0
+	    elif i > weekday:
+		result = i-weekday
+	    else:
+		result = i+7-weekday
+	    return {'weekday': days[i].title(), 'date': now+datetime.timedelta(days=result)}
+	elif re.search("DEMAIN", text, re.UNICODE):
+	    result = now+datetime.timedelta(days=1)
+	    return {'weekday': days[result.weekday()].title(), 'date': result}
+	elif re.search("AUJOURD'HUI", text, re.UNICODE):
+	    return {'weekday': days[now.weekday()].title(), 'date': now}
 
 
 def handle(text, mic, profile):
@@ -103,6 +123,8 @@ def handle(text, mic, profile):
         profile -- contains information related to the user (e.g., phone
                    number)
     """
+    logger = logging.getLogger(__name__)
+
     forecast = None
     if 'wmo_id' in profile:
         forecast = get_forecast_by_wmo_id(str(profile['wmo_id']))
@@ -110,55 +132,58 @@ def handle(text, mic, profile):
         forecast = get_forecast_by_name(str(profile['location']))
 
     if not forecast:
-        mic.say("I'm sorry, I can't seem to access that information. Please " +
-                "make sure that you've set your location on the dashboard.")
+        mic.say("Oups, je ne peux pas acceder à vos informations. Vérifier que vous avez bien renseigné votre localisation.")
         return
 
     tz = getTimezone(profile)
-
-    service = DateService(tz=tz)
-    date = service.extractDay(text)
-    if not date:
-        date = datetime.datetime.now(tz=tz)
-    weekday = service.__daysOfWeek__[date.weekday()]
-
-    if date.weekday() == datetime.datetime.now(tz=tz).weekday():
-        date_keyword = "Today"
-    elif date.weekday() == (
-            datetime.datetime.now(tz=tz).weekday() + 1) % 7:
-        date_keyword = "Tomorrow"
+    now = datetime.datetime.now(tz=tz)
+    extract = extractDate(text, now)
+    if not extract:
+        weekday = extractDate("Aujourd'hui", now)['weekday']
+	date = now
     else:
-        date_keyword = "On " + weekday
+        weekday = extract['weekday']
+        date = extract['date']
+
+    if date.weekday() == now.weekday():
+        date_keyword = "Aujourd'hui"
+    elif date.weekday() == (now.weekday() + 1) % 7:
+        date_keyword = "Demain"
+    else:
+        date_keyword = weekday
 
     output = None
 
     for entry in forecast:
-        try:
+        #try:
             date_desc = entry['title'].split()[0].strip().lower()
-            if date_desc == 'forecast':
+            if date_desc == u'prévisions':
                 # For global forecasts
-                date_desc = entry['title'].split()[2].strip().lower()
+                date_desc = entry['title'].split()[3].strip().lower()
                 weather_desc = entry['summary']
-            elif date_desc == 'current':
+		logger.debug("PREVISIONS : " + date_desc + "    " + weather_desc)
+            elif date_desc == u'conditions':
                 # For first item of global forecasts
+		logger.debug("CONDITIONS")
                 continue
             else:
                 # US forecasts
                 weather_desc = entry['summary'].split('-')[1]
+		logger.debug("OTHER : " + weather_desc)
 
-            if weekday == date_desc:
-                output = date_keyword + \
-                    ", the weather will be " + weather_desc + "."
+	    logger.debug("EGALITE ? " + weekday + " et " + date_desc.title())
+            if weekday == date_desc.title():
+                output = u"Les prévisions pour " + date_keyword  + u" sont : " + weather_desc + "."
                 break
-        except:
-            continue
+        #except:
+            #continue
 
     if output:
         output = replaceAcronyms(output)
         mic.say(output)
     else:
         mic.say(
-            "I'm sorry. I can't see that far ahead.")
+            "Désolé, j'ai eu un problème.")
 
 
 def isValid(text):
@@ -168,5 +193,5 @@ def isValid(text):
         Arguments:
         text -- user-input, typically transcribed speech
     """
-    return bool(re.search(r'\b(weathers?|temperature|forecast|outside|hot|' +
-                          r'cold|jacket|coat|rain)\b', text, re.IGNORECASE))
+    text = text.lower()
+    return bool(re.search(u'(météo|températures?|prévisions?|chaud|temps|froid|veste|manteau|pluie|pleut)', text, re.IGNORECASE))
